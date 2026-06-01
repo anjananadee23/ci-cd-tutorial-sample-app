@@ -184,6 +184,8 @@ You must add these repository secrets in GitHub:
 - `RENDER_SERVICE_ID`
 - `RENDER_API_KEY`
 
+If these secrets are not configured yet, the CD workflow will now skip the deploy step cleanly instead of failing the whole job. This keeps the pipeline readable during setup, while still allowing real staging deployment once the secrets are added.
+
 #### How to add the secrets
 
 1. Open the repository on GitHub.

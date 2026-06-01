@@ -31,15 +31,24 @@ jobs:
     needs: [test]
     steps:
       - uses: actions/checkout@v4
-      - name: Trigger Render deploy
+      - name: Check Render secrets
+        id: check_render
         env:
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           if [ -z "$RENDER_SERVICE_ID" ] || [ -z "$RENDER_API_KEY" ]; then
-            echo "RENDER_SERVICE_ID and RENDER_API_KEY must be set in repository secrets";
-            exit 1;
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Render secrets are not configured yet; skipping deploy step."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Trigger Render deploy
+        if: steps.check_render.outputs.enabled == 'true'
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
           curl -X POST \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \
