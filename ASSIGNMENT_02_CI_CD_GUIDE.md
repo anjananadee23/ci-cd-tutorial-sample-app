@@ -99,7 +99,8 @@ File:
 
 What it does:
 
-- triggers on pushes and pull requests to `main` and `master`
+- triggers on pushes to `main`, `master`, and `staging`
+- triggers on pull requests to `main` and `master`
 - sets up Python 3.12
 - installs dependencies from `requirements.txt`
 - runs database migrations using SQLite
@@ -157,9 +158,8 @@ File:
 
 What it does:
 
-- triggers on pushes to the `staging` branch
-- runs the same test job before deployment
-- deploys only after tests pass
+- triggers after the CI workflow completes successfully on the `staging` branch
+- deploys only after CI tests pass
 - uses the repo's Dockerfile as the container build source for the staging service
 - calls the Render deploy API
 
@@ -184,7 +184,7 @@ You must add these repository secrets in GitHub:
 - `RENDER_SERVICE_ID`
 - `RENDER_API_KEY`
 
-If these secrets are not configured yet, the CD workflow will now skip the deploy step cleanly instead of failing the whole job. This keeps the pipeline readable during setup, while still allowing real staging deployment once the secrets are added.
+If these secrets are not configured yet, the CD workflow will stop with a clear error because the deployment cannot happen without a real Render service and API key.
 
 #### How to add the secrets
 
@@ -197,10 +197,15 @@ If these secrets are not configured yet, the CD workflow will now skip the deplo
 #### How the staging deployment works
 
 1. Merge or push changes to the `staging` branch.
-2. GitHub Actions runs tests.
-3. If tests pass, GitHub Actions sends a deploy request to Render.
-4. Render rebuilds or redeploys the Docker container from the repository's `Dockerfile`.
-5. The staging app becomes available at the Render URL.
+2. GitHub Actions runs the CI workflow and executes the tests.
+3. If CI passes, the CD workflow starts automatically.
+4. GitHub Actions sends a deploy request to Render.
+5. Render rebuilds or redeploys the Docker container from the repository's `Dockerfile`.
+6. The staging app becomes available at the Render URL.
+
+#### Why the trigger order matters
+
+The repository now uses a `workflow_run` trigger for CD, so deployment happens after CI finishes successfully instead of running in parallel with the test job. This is the correct CI-then-CD sequence for the assignment.
 
 #### Why Docker is the better staging choice for this repo
 
@@ -208,6 +213,16 @@ If these secrets are not configured yet, the CD workflow will now skip the deplo
 - Docker keeps the staging environment close to production.
 - Docker lets you package the app, dependencies, and startup command together.
 - It satisfies the assignment's requirement for a containerized staging environment.
+- The container now runs database migrations and seeds data before starting the app, so the staging site is usable after deployment.
+
+#### Important note about deployment
+
+The repository can now express the correct CI -> CD order, but the Render staging app still needs to be created in your Render account and connected through these secrets:
+
+- `RENDER_SERVICE_ID`
+- `RENDER_API_KEY`
+
+Without those values, the CD workflow cannot actually deploy the container.
 
 #### Why this satisfies the assignment
 
