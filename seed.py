@@ -1,5 +1,6 @@
-from app import db
+from app import db, app
 from app.models import Menu
+
 
 class Seeder(object):
     def populate_database(self):
@@ -9,8 +10,10 @@ class Seeder(object):
             db.session.add(new_record)
             db.session.commit()
 
+
 if __name__ == '__main__':
     print("Seeding...")
-    seeder = Seeder()
-    seeder.populate_database()
+    with app.app_context():
+        seeder = Seeder()
+        seeder.populate_database()
     print("Seeding complete.")

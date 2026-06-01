@@ -21,11 +21,16 @@ class BasicTests(unittest.TestCase):
             os.environ.get('TEST_DATABASE_URL') or \
             'sqlite:///' + TEST_DB
         self.app = app.test_client()
+        # push application context for DB operations
+        self.ctx = app.app_context()
+        self.ctx.push()
         db.drop_all()
         db.create_all()
 
     def tearDown(self):
-        pass
+        db.session.remove()
+        db.drop_all()
+        self.ctx.pop()
 
     def test_home(self):
         response = self.app.get('/', follow_redirects=True)
@@ -49,6 +54,14 @@ class BasicTests(unittest.TestCase):
         body = json.loads(response.data)
         self.assertTrue('today_special' in body)
         self.assertEqual(body['today_special'], test_name)
+
+    def test_health(self):
+        response = self.app.get('/health', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, 'application/json')
+        body = json.loads(response.data)
+        self.assertEqual(body['status'], 'ok')
+        self.assertIn('version', body)
 
 if __name__ == "__main__":
     unittest.main()
